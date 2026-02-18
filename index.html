@@ -11,6 +11,53 @@
   <h1>Motor Details</h1>
   <div id="motor-container"></div>
 
-  <script src="motor.js"></script>
+  <script>
+    // 1. Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZESqwcjfC_HL565M8MqGlr1jKejtvfGw",
+      authDomain: "chm-certs-882d7.firebaseapp.com",
+      projectId: "chm-certs-882d7",
+      storageBucket: "chm-certs-882d7.firebasestorage.app",
+      messagingSenderId: "724974838408",
+      appId: "1:724974838408:web:72610b0366c2db73f7b53d"
+    };
+
+    // 2. Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const container = document.getElementById('motor-container');
+
+    // 3. Fetch all motors
+    db.collection('motors').get()
+      .then(snapshot => {
+        if (snapshot.empty) {
+          container.innerHTML = "<p>No motors found.</p>";
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const motor = doc.data();
+
+          // Create motor card
+          const motorCard = document.createElement('div');
+          motorCard.classList.add('motor-card');
+          motorCard.innerHTML = `
+            <h2>${motor.name || 'N/A'} (${doc.id})</h2>
+            <p><strong>Model:</strong> ${motor.model || 'N/A'}</p>
+            <p><strong>Brand:</strong> ${motor.brand || 'N/A'}</p>
+            <p><strong>Warranty:</strong> ${motor.warranty || 'N/A'}</p>
+            <p><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</p>
+            <a href="${motor.certificate || '#'}" target="_blank">View Certificate</a>
+            <hr>
+          `;
+          container.appendChild(motorCard);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        container.innerHTML = "<p>Error loading motors.</p>";
+      });
+  </script>
 </body>
 </html>
