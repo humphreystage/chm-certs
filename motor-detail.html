@@ -70,13 +70,17 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-gray-700">
               <div><strong>Model:</strong> ${motor.model || 'N/A'}</div>
               <div><strong>Brand:</strong> ${motor.brand || 'N/A'}</div>
+              <div><strong>Serial Number:</strong> ${motor.serial_number || 'N/A'}</div>
+              <div><strong>Location:</strong> ${motor.location || 'N/A'}</div>
               <div>
                 <strong>Warranty:</strong> ${motor.warranty || 'N/A'}
-                <span class="inline-block px-2 py-1 text-sm font-semibold rounded-full opacity-50 ${badgeClass}">
+                <span class="inline-block px-2 py-1 text-sm font-semibold rounded-full ${badgeClass}">
                   ${warrantyStatus}
                 </span>
               </div>
-              <div><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</div>
+              <div><strong>Condition:</strong> ${motor.condition || 'N/A'}</div>
+              <div><strong>Last Service:</strong> <span id="last-service">Loading...</span></div>
+              <div><strong>Next Service Due:</strong> ${motor.next_service || 'N/A'}</div>
             </div>
 
             <a href="${motor.certificate || '#'}" target="_blank" 
@@ -92,40 +96,50 @@
             </div>
           </div>
         `;
-const historyList = document.getElementById("service-history-list");
 
-db.collection("motors").doc(motorId)
-  .collection("service_history")
-  .get() // no ordering, just fetch all
-  .then(snapshot => {
-    if (snapshot.empty) {
-      historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
-      return;
-    }
+        const historyList = document.getElementById("service-history-list");
+        const lastServiceSpan = document.getElementById("last-service");
 
-    historyList.innerHTML = "";
+        db.collection("motors").doc(motorId)
+          .collection("service_history")
+          .get()
+          .then(snapshot => {
+            if (snapshot.empty) {
+              historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
+              lastServiceSpan.textContent = 'N/A';
+              return;
+            }
 
-    // Sort by document ID descending manually (optional)
-    const sortedDocs = snapshot.docs.sort((a, b) => b.id.localeCompare(a.id));
+            historyList.innerHTML = "";
 
-    sortedDocs.forEach(doc => {
-      const service = doc.data();
-      const serviceDate = doc.id; // your document ID, maybe timestamp
-      historyList.innerHTML += `
-        <li class="mb-2 relative">
-          <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
-          <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
-          <p class="text-gray-600 text-sm">Date: ${serviceDate}</p>
-          <p class="text-gray-600 text-sm">Checked by: ${service.checked_by || 'N/A'}</p>
-          <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
-        </li>
-      `;
-    });
-  })
-  .catch(err => {
-    console.error("Error fetching service history:", err.code, err.message);
-    historyList.innerHTML = `<li class='text-red-500'>Error loading service history: ${err.message}</li>`;
-  });
+            // Sort by document ID descending to get the latest first
+            const sortedDocs = snapshot.docs.sort((a, b) => b.id.localeCompare(a.id));
+
+            // Update last service based on the first document
+            const latestService = sortedDocs[0].data();
+            const latestServiceDate = sortedDocs[0].id;
+            lastServiceSpan.textContent = `${latestService.service_type || 'Service'} on ${latestServiceDate}`;
+
+            // Render full service history
+            sortedDocs.forEach(doc => {
+              const service = doc.data();
+              const serviceDate = doc.id;
+              historyList.innerHTML += `
+                <li class="mb-2 relative">
+                  <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
+                  <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
+                  <p class="text-gray-600 text-sm">Date: ${serviceDate}</p>
+                  <p class="text-gray-600 text-sm">Checked by: ${service.checked_by || 'N/A'}</p>
+                  <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
+                </li>
+              `;
+            });
+          })
+          .catch(err => {
+            console.error("Error fetching service history:", err.code, err.message);
+            historyList.innerHTML = `<li class='text-red-500'>Error loading service history: ${err.message}</li>`;
+            lastServiceSpan.textContent = 'Error';
+          });
 
       })
       .catch(err => {
