@@ -2,14 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Motor Info</title>
+  <title>Motor Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Motor Details</h1>
-  <div id="motor-container"></div>
+<body class="bg-gray-100 min-h-screen p-6">
+
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-800">Motor Dashboard</h1>
+    <p class="text-gray-600">View and explore all motors</p>
+  </header>
+
+  <div class="mb-4">
+    <input type="text" id="searchInput" placeholder="Search by name or ID..." 
+      class="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+  </div>
+
+  <div id="motor-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
   <script>
     // Firebase config
@@ -27,38 +37,63 @@
     const db = firebase.firestore();
 
     const container = document.getElementById('motor-container');
+    const searchInput = document.getElementById('searchInput');
 
-    // Get motor ID from URL
-    const params = new URLSearchParams(window.location.search);
-    const motorId = params.get('id');
-    console.log("Motor ID:", motorId); // Debug
+    let motorsData = [];
 
-    if (!motorId) {
-      container.innerHTML = "<p>No motor ID provided in URL.</p>";
-    } else {
-      db.collection('motors').doc(motorId).get()
-        .then(doc => {
-          if (!doc.exists) {
-            container.innerHTML = `<p>Motor with ID '${motorId}' not found.</p>`;
-            console.warn("Document does not exist or blocked by rules.");
-            return;
-          }
+    // Fetch all motors
+    db.collection('motors').get()
+      .then(snapshot => {
+        if (snapshot.empty) {
+          container.innerHTML = "<p class='text-gray-500'>No motors found.</p>";
+          return;
+        }
 
+        snapshot.forEach(doc => {
           const motor = doc.data();
-          container.innerHTML = `
-            <h2>${motor.name || 'N/A'} (${motorId})</h2>
-            <p><strong>Model:</strong> ${motor.model || 'N/A'}</p>
-            <p><strong>Brand:</strong> ${motor.brand || 'N/A'}</p>
-            <p><strong>Warranty:</strong> ${motor.warranty || 'N/A'}</p>
-            <p><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</p>
-            <a href="${motor.certificate || '#'}" target="_blank">View Certificate</a>
-          `;
-        })
-        .catch(err => {
-          console.error("Error fetching document:", err);
-          container.innerHTML = "<p>Error loading motor information. Check console for details.</p>";
+          motorsData.push({ id: doc.id, ...motor });
         });
+
+        renderMotors(motorsData);
+      })
+      .catch(err => {
+        console.error("Error fetching motors:", err);
+        container.innerHTML = "<p class='text-red-500'>Error loading motors.</p>";
+      });
+
+    // Render motors
+    function renderMotors(data) {
+      container.innerHTML = '';
+      if (data.length === 0) {
+        container.innerHTML = "<p class='text-gray-500'>No motors match your search.</p>";
+        return;
+      }
+
+      data.forEach(motor => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-6 rounded-xl shadow hover:shadow-lg transition shadow-gray-300";
+        card.innerHTML = `
+          <h2 class="text-xl font-semibold text-gray-800">${motor.name || 'N/A'} (${motor.id})</h2>
+          <p class="text-gray-600"><strong>Model:</strong> ${motor.model || 'N/A'}</p>
+          <p class="text-gray-600"><strong>Brand:</strong> ${motor.brand || 'N/A'}</p>
+          <p class="text-gray-600"><strong>Warranty:</strong> ${motor.warranty || 'N/A'}</p>
+          <p class="text-gray-600"><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</p>
+          <a href="${motor.certificate || '#'}" target="_blank" 
+             class="mt-2 inline-block text-blue-500 hover:underline">View Certificate</a>
+        `;
+        container.appendChild(card);
+      });
     }
+
+    // Search functionality
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = motorsData.filter(motor => 
+        (motor.name && motor.name.toLowerCase().includes(query)) ||
+        (motor.id && motor.id.toLowerCase().includes(query))
+      );
+      renderMotors(filtered);
+    });
   </script>
 </body>
 </html>
