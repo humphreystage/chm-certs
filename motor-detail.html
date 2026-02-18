@@ -9,130 +9,128 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-6">
 
-  <header class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-800">Motor Details</h1>
-    <p class="text-gray-600">Detailed view for a specific motor</p>
-  </header>
+<header class="mb-6">
+  <h1 class="text-3xl font-bold text-gray-800">Motor Details</h1>
+  <p class="text-gray-600">Detailed view for a specific motor</p>
+</header>
 
-  <div id="motor-container" class="max-w-3xl mx-auto"></div>
+<div id="motor-container" class="max-w-3xl mx-auto"></div>
 
-  <script>
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBZESqwcjfC_HL565M8MqGlr1jKejtvfGw",
-      authDomain: "chm-certs-882d7.firebaseapp.com",
-      projectId: "chm-certs-882d7",
-      storageBucket: "chm-certs-882d7.firebasestorage.app",
-      messagingSenderId: "724974838408",
-      appId: "1:724974838408:web:72610b0366c2db73f7b53d"
-    };
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBZESqwcjfC_HL565M8MqGlr1jKejtvfGw",
+    authDomain: "chm-certs-882d7.firebaseapp.com",
+    projectId: "chm-certs-882d7",
+    storageBucket: "chm-certs-882d7.firebasestorage.app",
+    messagingSenderId: "724974838408",
+    appId: "1:724974838408:web:72610b0366c2db73f7b53d"
+  };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    const container = document.getElementById('motor-container');
+  const container = document.getElementById('motor-container');
+  const params = new URLSearchParams(window.location.search);
+  const motorId = params.get('id');
 
-    // Get motor ID from URL
-    const params = new URLSearchParams(window.location.search);
-    const motorId = params.get('id');
+  if (!motorId) {
+    container.innerHTML = "<p class='text-red-500'>No motor ID provided in URL.</p>";
+  } else {
+    db.collection('motors').doc(motorId).get()
+      .then(doc => {
+        if (!doc.exists) {
+          container.innerHTML = `<p class='text-red-500'>Motor with ID '${motorId}' not found.</p>`;
+          return;
+        }
 
-    if (!motorId) {
-      container.innerHTML = "<p class='text-red-500'>No motor ID provided in URL.</p>";
-    } else {
-      // Get main motor info
-      db.collection('motors').doc(motorId).get()
-        .then(doc => {
-          if (!doc.exists) {
-            container.innerHTML = `<p class='text-red-500'>Motor with ID '${motorId}' not found.</p>`;
-            return;
+        const motor = doc.data();
+
+        let warrantyStatus = 'N/A';
+        let badgeClass = 'bg-gray-200 text-gray-800';
+        if (motor.warranty) {
+          const today = new Date();
+          const warrantyDate = new Date(motor.warranty);
+          if (warrantyDate >= today) {
+            warrantyStatus = 'Active';
+            badgeClass = 'bg-green-200 text-green-800';
+          } else {
+            warrantyStatus = 'Expired';
+            badgeClass = 'bg-red-200 text-red-800';
           }
+        }
 
-          const motor = doc.data();
+        container.innerHTML = `
+          <a href="index.html" class="inline-block mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+            ← Back to Dashboard
+          </a>
 
-          // Compute warranty status
-          let warrantyStatus = 'N/A';
-          let badgeClass = 'bg-gray-200 text-gray-800';
-          if (motor.warranty) {
-            const today = new Date();
-            const warrantyDate = new Date(motor.warranty);
-            if (warrantyDate >= today) {
-              warrantyStatus = 'Active';
-              badgeClass = 'bg-green-200 text-green-800';
-            } else {
-              warrantyStatus = 'Expired';
-              badgeClass = 'bg-red-200 text-red-800';
-            }
-          }
+          <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">${motor.name || 'N/A'} (${motorId})</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-gray-700">
+              <div><strong>Model:</strong> ${motor.model || 'N/A'}</div>
+              <div><strong>Brand:</strong> ${motor.brand || 'N/A'}</div>
+              <div>
+                <strong>Warranty:</strong> ${motor.warranty || 'N/A'}
+                <span class="inline-block px-2 py-1 text-sm font-semibold rounded-full ${badgeClass}">
+                  ${warrantyStatus}
+                </span>
+              </div>
+              <div><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</div>
+            </div>
 
-          // Render the main motor info container first
-          container.innerHTML = `
-            <a href="index.html" class="inline-block mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-              ← Back to Dashboard
+            <a href="${motor.certificate || '#'}" target="_blank" 
+               class="inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition mb-4">
+               View Certificate
             </a>
 
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-              <h2 class="text-2xl font-bold text-gray-800 mb-2">${motor.name || 'N/A'} (${motorId})</h2>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-gray-700">
-                <div><strong>Model:</strong> ${motor.model || 'N/A'}</div>
-                <div><strong>Brand:</strong> ${motor.brand || 'N/A'}</div>
-                <div>
-                  <strong>Warranty:</strong> ${motor.warranty || 'N/A'}
-                  <span class="inline-block px-2 py-1 text-sm font-semibold rounded-full ${badgeClass}">
-                    ${warrantyStatus}
-                  </span>
-                </div>
-                <div><strong>Last Service:</strong> ${motor.last_service || 'N/A'}</div>
-              </div>
-
-              <a href="${motor.certificate || '#'}" target="_blank" 
-                 class="inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition mb-4">
-                 View Certificate
-              </a>
-
-              <div class="mt-6">
-                <h3 class="font-semibold text-gray-800 mb-2">Service History</h3>
-                <ul id="service-history-list" class="border-l-2 border-gray-300 pl-4">
-                  <li class="mb-2 text-gray-500">Loading service history...</li>
-                </ul>
-              </div>
+            <div class="mt-6">
+              <h3 class="font-semibold text-gray-800 mb-2">Service History</h3>
+              <ul id="service-history-list" class="border-l-2 border-gray-300 pl-4">
+                <li class="mb-2 text-gray-500">Loading service history...</li>
+              </ul>
             </div>
-          `;
+          </div>
+        `;
 
-          // Fetch service history from subcollection
-          const historyList = document.getElementById("service-history-list");
-          db.collection("motors").doc(motorId)
-  .collection("service_history")
-  .orderBy(firebase.firestore.FieldPath.documentId(), "desc")
-  .get()
-  .then(snapshot => {
-    if (snapshot.empty) {
-      historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
-      return;
-    }
+        const historyList = document.getElementById("service-history-list");
+        db.collection("motors").doc(motorId)
+          .collection("service_history")
+          .orderBy(firebase.firestore.FieldPath.documentId(), "desc")
+          .get()
+          .then(snapshot => {
+            if (snapshot.empty) {
+              historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
+              return;
+            }
 
-    historyList.innerHTML = "";
-    snapshot.forEach(doc => {
-      const service = doc.data();
-      const serviceDate = doc.id; // Use document ID as date
-      historyList.innerHTML += `
-        <li class="mb-2 relative">
-          <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
-          <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
-          <p class="text-gray-600 text-sm">Date: ${serviceDate}</p>
-          <p class="text-gray-600 text-sm">Checked by: ${service.checked_by || 'N/A'}</p>
-          <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
-        </li>
-      `;
-    });
-  })
-  .catch(err => {
-    console.error("Error fetching service history:", err);
-    historyList.innerHTML = "<li class='text-red-500'>Error loading service history.</li>";
-  });
+            historyList.innerHTML = "";
+            snapshot.forEach(doc => {
+              const service = doc.data();
+              const serviceDate = doc.id;
+              historyList.innerHTML += `
+                <li class="mb-2 relative">
+                  <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
+                  <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
+                  <p class="text-gray-600 text-sm">Date: ${serviceDate}</p>
+                  <p class="text-gray-600 text-sm">Checked by: ${service.checked_by || 'N/A'}</p>
+                  <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
+                </li>
+              `;
+            });
+          })
+          .catch(err => {
+            console.error("Error fetching service history:", err);
+            historyList.innerHTML = "<li class='text-red-500'>Error loading service history.</li>";
+          });
 
-    }
-  </script>
+      })
+      .catch(err => {
+        console.error("Error fetching motor:", err);
+        container.innerHTML = "<p class='text-red-500'>Error loading motor information.</p>";
+      });
+  }
+</script>
+
 </body>
 </html>
