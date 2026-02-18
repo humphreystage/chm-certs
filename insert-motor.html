@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Insert Motors</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Insert Motors Batch</h1>
+  <button id="insert-btn" class="px-4 py-2 bg-blue-500 text-white rounded">Insert Motors</button>
+
+  <script>
+    // 1. Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZESqwcjfC_HL565M8MqGlr1jKejtvfGw",
+      authDomain: "chm-certs-882d7.firebaseapp.com",
+      projectId: "chm-certs-882d7",
+      storageBucket: "chm-certs-882d7.firebasestorage.app",
+      messagingSenderId: "724974838408",
+      appId: "1:724974838408:web:72610b0366c2db73f7b53d"
+    };
+
+    // 2. Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 3. Array of motors
+const motors = [];
+for (let i = 2; i <= 21; i++) {
+  const id = 'SRI' + String(i).padStart(8, '0'); // SRI00000002 ...
+  motors.push({
+    id,
+    name: `Motor ${i}`,
+    model: `M${100 + i}`,
+    brand: `Brand${String.fromCharCode(64 + i)}`, // BrandB, BrandC, etc.
+    warranty: "2026-12-31",
+    last_service: "2025-12-01",
+    certificate: `https://example.com/cert${i}.pdf`
+  });
+}
+
+    document.getElementById("insert-btn").addEventListener("click", () => {
+      const batch = db.batch();
+      motors.forEach(motor => {
+        const docRef = db.collection("motors").doc(motor.id);
+        batch.set(docRef, motor);
+      });
+      batch.commit()
+        .then(() => alert("All motors added successfully!"))
+        .catch(err => alert("Error adding motors: " + err));
+    });
+  </script>
+</body>
+</html>
