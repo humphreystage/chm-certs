@@ -40,6 +40,7 @@
     if (!motorId) {
       container.innerHTML = "<p class='text-red-500'>No motor ID provided in URL.</p>";
     } else {
+      // Get main motor info
       db.collection('motors').doc(motorId).get()
         .then(doc => {
           if (!doc.exists) {
@@ -49,7 +50,7 @@
 
           const motor = doc.data();
 
-          // Compute warranty status (example: check if warranty is "expired" or "active")
+          // Compute warranty status
           let warrantyStatus = 'N/A';
           let badgeClass = 'bg-gray-200 text-gray-800';
           if (motor.warranty) {
@@ -64,6 +65,7 @@
             }
           }
 
+          // Render the main motor info container first
           container.innerHTML = `
             <a href="index.html" class="inline-block mb-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
               ← Back to Dashboard
@@ -91,22 +93,44 @@
 
               <div class="mt-6">
                 <h3 class="font-semibold text-gray-800 mb-2">Service History</h3>
-                <ul class="border-l-2 border-gray-300 pl-4">
-                  <li class="mb-2 relative">
-                    <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
-                    <p class="text-gray-700">Last serviced on: ${motor.last_service || 'N/A'}</p>
-                  </li>
-                  <!-- Example placeholder for more history -->
-                  ${motor.service_history ? motor.service_history.map(date => `
-                    <li class="mb-2 relative">
-                      <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
-                      <p class="text-gray-700">Serviced on: ${date}</p>
-                    </li>
-                  `).join('') : ''}
+                <ul id="service-history-list" class="border-l-2 border-gray-300 pl-4">
+                  <li class="mb-2 text-gray-500">Loading service history...</li>
                 </ul>
               </div>
             </div>
           `;
+
+          // Fetch service history from subcollection
+          const historyList = document.getElementById("service-history-list");
+          db.collection("motors").doc(motorId)
+            .collection("service_history")
+            .orderBy("service_date", "desc")
+            .get()
+            .then(snapshot => {
+              if (snapshot.empty) {
+                historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
+                return;
+              }
+
+              historyList.innerHTML = "";
+              snapshot.forEach(doc => {
+                const service = doc.data();
+                historyList.innerHTML += `
+                  <li class="mb-2 relative">
+                    <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
+                    <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
+                    <p class="text-gray-600 text-sm">Date: ${service.service_date || 'N/A'}</p>
+                    <p class="text-gray-600 text-sm">Technician: ${service.technician || 'N/A'}</p>
+                    <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
+                  </li>
+                `;
+              });
+            })
+            .catch(err => {
+              console.error("Error fetching service history:", err);
+              historyList.innerHTML = "<li class='text-red-500'>Error loading service history.</li>";
+            });
+
         })
         .catch(err => {
           console.error("Error fetching motor:", err);
