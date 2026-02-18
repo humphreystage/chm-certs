@@ -103,39 +103,35 @@
           // Fetch service history from subcollection
           const historyList = document.getElementById("service-history-list");
           db.collection("motors").doc(motorId)
-            .collection("service_history")
-            .orderBy("service_date", "desc")
-            .get()
-            .then(snapshot => {
-              if (snapshot.empty) {
-                historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
-                return;
-              }
+  .collection("service_history")
+  .orderBy(firebase.firestore.FieldPath.documentId(), "desc")
+  .get()
+  .then(snapshot => {
+    if (snapshot.empty) {
+      historyList.innerHTML = "<li class='text-gray-500'>No service history available.</li>";
+      return;
+    }
 
-              historyList.innerHTML = "";
-              snapshot.forEach(doc => {
-                const service = doc.data();
-                historyList.innerHTML += `
-                  <li class="mb-2 relative">
-                    <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
-                    <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
-                    <p class="text-gray-600 text-sm">Date: ${service.service_date || 'N/A'}</p>
-                    <p class="text-gray-600 text-sm">Technician: ${service.technician || 'N/A'}</p>
-                    <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
-                  </li>
-                `;
-              });
-            })
-            .catch(err => {
-              console.error("Error fetching service history:", err);
-              historyList.innerHTML = "<li class='text-red-500'>Error loading service history.</li>";
-            });
+    historyList.innerHTML = "";
+    snapshot.forEach(doc => {
+      const service = doc.data();
+      const serviceDate = doc.id; // Use document ID as date
+      historyList.innerHTML += `
+        <li class="mb-2 relative">
+          <span class="absolute -left-2 top-0 w-4 h-4 bg-blue-500 rounded-full"></span>
+          <p class="text-gray-700 font-medium">${service.service_type || 'Service'}</p>
+          <p class="text-gray-600 text-sm">Date: ${serviceDate}</p>
+          <p class="text-gray-600 text-sm">Checked by: ${service.checked_by || 'N/A'}</p>
+          <p class="text-gray-600 text-sm">Notes: ${service.notes || '-'}</p>
+        </li>
+      `;
+    });
+  })
+  .catch(err => {
+    console.error("Error fetching service history:", err);
+    historyList.innerHTML = "<li class='text-red-500'>Error loading service history.</li>";
+  });
 
-        })
-        .catch(err => {
-          console.error("Error fetching motor:", err);
-          container.innerHTML = "<p class='text-red-500'>Error loading motor information.</p>";
-        });
     }
   </script>
 </body>
